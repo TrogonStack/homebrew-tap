@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.2.0...v0.3.0) (2026-02-15)
+
+
+### Features
+
+* Add trg formula ([#7](https://github.com/TrogonStack/homebrew-tap/issues/7)) ([2e581c4](https://github.com/TrogonStack/homebrew-tap/commit/2e581c40d709e5b21388b9c0776723ed7f58f7e0))
+
 ## [0.2.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.1.0...v0.2.0) (2026-01-17)
 
 
