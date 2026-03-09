@@ -115,7 +115,12 @@ jobs:
               FILE="otelcol-contrib_${VERSION}_${ARCH}.tar.gz"
             fi
 
-            SHA=$(curl -sL "${BASE}/${FILE}" | sha256sum | awk '{print $1}')
+            URL="${BASE}/${FILE}"
+            SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+            if ! echo "$SHA" | grep -qE '^[a-f0-9]{64}$'; then
+              echo "::error::Failed to fetch or hash $URL (got: '$SHA')"
+              exit 1
+            fi
             RESULT="${RESULT}${ARCH}=${SHA}\n"
             echo "sha_${ARCH//[-.]/_}=$SHA" >> $GITHUB_OUTPUT
           done
