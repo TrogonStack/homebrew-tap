@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: resolve versions and compute SHA256s but do not open PRs"
+        type: boolean
+        default: false
 
 jobs:
   bump:
@@ -208,8 +213,21 @@ jobs:
           sha_Linux_x86_64: ${{ steps.checksums.outputs.sha_Linux_x86_64 }}
           sha_darwin_amd64: ${{ steps.checksums.outputs.sha_darwin_amd64 }}
 
+      - name: Dry run summary
+        if: steps.check.outputs.needed == 'true' && inputs.dry_run
+        run: |
+          echo "### Dry run: ${{ matrix.formula }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current version**: \`${{ steps.current.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **New version**: \`${{ steps.upstream.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Would open PR**: bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Updated formula:**" >> $GITHUB_STEP_SUMMARY
+          echo '```ruby' >> $GITHUB_STEP_SUMMARY
+          cat ${{ matrix.formula_file }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Open PR
-        if: steps.check.outputs.needed == 'true'
+        if: steps.check.outputs.needed == 'true' && !inputs.dry_run
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c5e6f51e28 # v7.0.8
         with:
           token: ${{ secrets.GH_PAT_RELEASE_PLEASE_ACTION }}
