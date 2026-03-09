@@ -83,7 +83,11 @@ jobs:
         run: |
           UPSTREAM="${{ steps.upstream.outputs.version }}"
           CURRENT="${{ steps.current.outputs.version }}"
-          if [ "$UPSTREAM" = "$CURRENT" ]; then
+          if [ -z "$UPSTREAM" ] || [ "$UPSTREAM" = "null" ]; then
+            echo "needed=false" >> $GITHUB_OUTPUT
+            echo "::error::${{ matrix.formula }}: could not resolve upstream version (got '$UPSTREAM'). Check tag_prefix and upstream_repo."
+            exit 1
+          elif [ "$UPSTREAM" = "$CURRENT" ]; then
             echo "needed=false" >> $GITHUB_OUTPUT
             echo "${{ matrix.formula }}: already at $CURRENT, skipping."
           else
