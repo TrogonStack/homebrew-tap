@@ -1,0 +1,244 @@
+name: Autobump Formulas
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: resolve versions and compute SHA256s but do not open PRs"
+        type: boolean
+        default: false
+
+jobs:
+  bump:
+    name: Bump ${{ matrix.formula }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - formula: trg
+            formula_file: Formula/trg.rb
+            upstream_repo: TrogonStack/rusty-monorepo
+            tag_prefix: trg@v
+            # {name}-{version}-{arch}.tar.gz
+            url_style: rust
+            archs: >-
+              aarch64-apple-darwin
+              x86_64-apple-darwin
+              aarch64-unknown-linux-gnu
+              x86_64-unknown-linux-gnu
+
+          - formula: protoc-gen-elixir-grpc
+            formula_file: Formula/protoc-gen-elixir-grpc.rb
+            upstream_repo: TrogonStack/protoc-gen
+            tag_prefix: protoc-gen-elixir-grpc@v
+            # {name}@v{version}_{OS}_{arch}.tar.gz
+            url_style: goreleaser
+            archs: >-
+              Darwin_arm64
+              Darwin_x86_64
+              Linux_arm64
+              Linux_x86_64
+
+          - formula: protoc-gen-connect-go-servicestruct
+            formula_file: Formula/protoc-gen-connect-go-servicestruct.rb
+            upstream_repo: TrogonStack/protoc-gen
+            tag_prefix: protoc-gen-connect-go-servicestruct@v
+            url_style: goreleaser
+            archs: >-
+              Darwin_arm64
+              Darwin_x86_64
+              Linux_arm64
+              Linux_x86_64
+
+          - formula: otel-collector
+            formula_file: Formula/otel-collector.rb
+            upstream_repo: open-telemetry/opentelemetry-collector-releases
+            tag_prefix: "v"
+            url_style: otelcol
+            archs: >-
+              darwin_amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest upstream version
+        id: upstream
+        run: |
+          TAG=$(curl -sL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ matrix.upstream_repo }}/releases?per_page=100" \
+            | jq -r --arg prefix "${{ matrix.tag_prefix }}" \
+              '[.[] | select(.tag_name | startswith($prefix))] | first | .tag_name | ltrimstr($prefix)')
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Get current formula version
+        id: current
+        run: |
+          VERSION=$(grep '^  version ' ${{ matrix.formula_file }} | sed 's/.*"\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if bump needed
+        id: check
+        run: |
+          UPSTREAM="${{ steps.upstream.outputs.version }}"
+          CURRENT="${{ steps.current.outputs.version }}"
+          if [ -z "$UPSTREAM" ] || [ "$UPSTREAM" = "null" ]; then
+            echo "needed=false" >> $GITHUB_OUTPUT
+            echo "::error::${{ matrix.formula }}: could not resolve upstream version (got '$UPSTREAM'). Check tag_prefix and upstream_repo."
+            exit 1
+          elif [ "$UPSTREAM" = "$CURRENT" ]; then
+            echo "needed=false" >> $GITHUB_OUTPUT
+            echo "${{ matrix.formula }}: already at $CURRENT, skipping."
+          else
+            echo "needed=true" >> $GITHUB_OUTPUT
+            echo "${{ matrix.formula }}: bumping $CURRENT → $UPSTREAM"
+          fi
+
+      - name: Fetch SHA256 checksums
+        if: steps.check.outputs.needed == 'true'
+        id: checksums
+        run: |
+          VERSION="${{ steps.upstream.outputs.version }}"
+          FORMULA="${{ matrix.formula }}"
+          TAG_PREFIX="${{ matrix.tag_prefix }}"
+          BASE="https://github.com/${{ matrix.upstream_repo }}/releases/download/${TAG_PREFIX}${VERSION}"
+          STYLE="${{ matrix.url_style }}"
+          RESULT=""
+
+          for ARCH in ${{ matrix.archs }}; do
+            if [ "$STYLE" = "rust" ]; then
+              FILE="${FORMULA}-${VERSION}-${ARCH}.tar.gz"
+            elif [ "$STYLE" = "goreleaser" ]; then
+              FILE="${FORMULA}@v${VERSION}_${ARCH}.tar.gz"
+            elif [ "$STYLE" = "otelcol" ]; then
+              FILE="otelcol-contrib_${VERSION}_${ARCH}.tar.gz"
+            fi
+
+            URL="${BASE}/${FILE}"
+            SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+            if ! echo "$SHA" | grep -qE '^[a-f0-9]{64}$'; then
+              echo "::error::Failed to fetch or hash $URL (got: '$SHA')"
+              exit 1
+            fi
+            RESULT="${RESULT}${ARCH}=${SHA}\n"
+            echo "sha_${ARCH//[-.]/_}=$SHA" >> $GITHUB_OUTPUT
+          done
+
+          printf "$RESULT"
+
+      - name: Update formula
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          python3 - <<'PYEOF'
+          import re, os, subprocess
+
+          formula_file = os.environ["FORMULA_FILE"]
+          version      = os.environ["NEW_VERSION"]
+          formula      = os.environ["FORMULA_NAME"]
+          tag_prefix   = os.environ["TAG_PREFIX"]
+          style        = os.environ["URL_STYLE"]
+          repo         = os.environ["UPSTREAM_REPO"]
+          archs_raw    = os.environ["ARCHS"].split()
+
+          base = f"https://github.com/{repo}/releases/download/{tag_prefix}{version}"
+
+          with open(formula_file) as f:
+              content = f.read()
+
+          content = re.sub(r'version "[^"]+"', f'version "{version}"', content)
+
+          for arch in archs_raw:
+              if style == "rust":
+                  new_url = f"{base}/{formula}-{version}-{arch}.tar.gz"
+                  arch_pat = arch.replace("-", r"\-")
+                  content = re.sub(
+                      rf'(url ")[^"]+{arch_pat}\.tar\.gz"',
+                      f'url "{new_url}"',
+                      content
+                  )
+              elif style == "goreleaser":
+                  new_url = f"{base}/{formula}@v{version}_{arch}.tar.gz"
+                  arch_pat = arch.replace("_", r"\_")
+                  content = re.sub(
+                      rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
+                      f'url "{new_url}"',
+                      content
+                  )
+              elif style == "otelcol":
+                  new_url = f"{base}/otelcol-contrib_{version}_{arch}.tar.gz"
+                  content = re.sub(
+                      rf'(url ")[^"]+"',
+                      f'url "{new_url}"',
+                      content
+                  )
+
+              env_key = "sha_" + arch.replace("-", "_").replace(".", "_")
+              sha = os.environ.get(env_key, "")
+              if sha:
+                  if style in ("rust", "goreleaser"):
+                      content = re.sub(
+                          rf'({re.escape(arch)}\.tar\.gz"\n\s+sha256 ")[a-f0-9]+"',
+                          rf'\g<1>{sha}"',
+                          content
+                      )
+                  elif style == "otelcol":
+                      content = re.sub(r'sha256 "[a-f0-9]+"', f'sha256 "{sha}"', content)
+
+          with open(formula_file, "w") as f:
+              f.write(content)
+
+          print(content)
+          PYEOF
+        env:
+          FORMULA_FILE: ${{ matrix.formula_file }}
+          NEW_VERSION: ${{ steps.upstream.outputs.version }}
+          FORMULA_NAME: ${{ matrix.formula }}
+          TAG_PREFIX: ${{ matrix.tag_prefix }}
+          URL_STYLE: ${{ matrix.url_style }}
+          UPSTREAM_REPO: ${{ matrix.upstream_repo }}
+          ARCHS: ${{ matrix.archs }}
+          sha_aarch64_apple_darwin: ${{ steps.checksums.outputs.sha_aarch64_apple_darwin }}
+          sha_x86_64_apple_darwin: ${{ steps.checksums.outputs.sha_x86_64_apple_darwin }}
+          sha_aarch64_unknown_linux_gnu: ${{ steps.checksums.outputs.sha_aarch64_unknown_linux_gnu }}
+          sha_x86_64_unknown_linux_gnu: ${{ steps.checksums.outputs.sha_x86_64_unknown_linux_gnu }}
+          sha_Darwin_arm64: ${{ steps.checksums.outputs.sha_Darwin_arm64 }}
+          sha_Darwin_x86_64: ${{ steps.checksums.outputs.sha_Darwin_x86_64 }}
+          sha_Linux_arm64: ${{ steps.checksums.outputs.sha_Linux_arm64 }}
+          sha_Linux_x86_64: ${{ steps.checksums.outputs.sha_Linux_x86_64 }}
+          sha_darwin_amd64: ${{ steps.checksums.outputs.sha_darwin_amd64 }}
+
+      - name: Dry run summary
+        if: steps.check.outputs.needed == 'true' && inputs.dry_run
+        run: |
+          echo "### Dry run: ${{ matrix.formula }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current version**: \`${{ steps.current.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **New version**: \`${{ steps.upstream.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Would open PR**: bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Updated formula:**" >> $GITHUB_STEP_SUMMARY
+          echo '```ruby' >> $GITHUB_STEP_SUMMARY
+          cat ${{ matrix.formula_file }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Open PR
+        if: steps.check.outputs.needed == 'true' && !inputs.dry_run
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c5e6f51e28 # v7.0.8
+        with:
+          token: ${{ secrets.GH_PAT_RELEASE_PLEASE_ACTION }}
+          commit-message: "chore: bump ${{ matrix.formula }} to ${{ steps.upstream.outputs.version }}"
+          branch: "bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}"
+          title: "chore: bump ${{ matrix.formula }} to ${{ steps.upstream.outputs.version }}"
+          body: |
+            Automated formula bump for `${{ matrix.formula }}`.
+
+            - **Previous version**: `${{ steps.current.outputs.version }}`
+            - **New version**: `${{ steps.upstream.outputs.version }}`
+          labels: |
+            bot
+            bump-formula-pr
