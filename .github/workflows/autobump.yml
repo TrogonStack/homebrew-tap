@@ -76,8 +76,7 @@ jobs:
             --repo "${{ matrix.upstream_repo }}" \
             --limit 100 \
             --json tagName \
-            --jq --arg prefix "${{ matrix.tag_prefix }}" \
-              '[.[] | select(.tagName | startswith($prefix) and (contains("/") | not))] | first | .tagName | ltrimstr($prefix)')
+            --jq '[.[] | select(.tagName | startswith("${{ matrix.tag_prefix }}") and (contains("/") | not))] | first | .tagName | ltrimstr("${{ matrix.tag_prefix }}")')
 
           if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
             echo "::error::Could not resolve upstream version for ${{ matrix.formula }} (tag_prefix: ${{ matrix.tag_prefix }})"
