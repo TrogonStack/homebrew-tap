@@ -17,6 +17,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -70,20 +72,18 @@ jobs:
       - name: Get latest upstream version
         id: upstream
         run: |
-          RESPONSE=$(curl -fsSL \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ matrix.upstream_repo }}/releases?per_page=100")
+          TAG=$(gh release list \
+            --repo "${{ matrix.upstream_repo }}" \
+            --limit 100 \
+            --json tagName \
+            --jq --arg prefix "${{ matrix.tag_prefix }}" \
+              '[.[] | select(.tagName | startswith($prefix) and (contains("/") | not))] | first | .tagName | ltrimstr($prefix)')
 
-          if ! echo "$RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
-            echo "::error::GitHub API did not return an array for ${{ matrix.upstream_repo }}/releases. Response: $(echo "$RESPONSE" | jq -c .)"
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "::error::Could not resolve upstream version for ${{ matrix.formula }} (tag_prefix: ${{ matrix.tag_prefix }})"
             exit 1
           fi
 
-          TAG=$(echo "$RESPONSE" \
-            | jq -r --arg prefix "${{ matrix.tag_prefix }}" \
-              '[.[] | select(.tag_name | startswith($prefix) and (contains("/") | not))] | first | .tag_name | ltrimstr($prefix)')
           echo "version=$TAG" >> $GITHUB_OUTPUT
 
       - name: Get current formula version
@@ -97,11 +97,7 @@ jobs:
         run: |
           UPSTREAM="${{ steps.upstream.outputs.version }}"
           CURRENT="${{ steps.current.outputs.version }}"
-          if [ -z "$UPSTREAM" ] || [ "$UPSTREAM" = "null" ]; then
-            echo "needed=false" >> $GITHUB_OUTPUT
-            echo "::error::${{ matrix.formula }}: could not resolve upstream version (got '$UPSTREAM'). Check tag_prefix and upstream_repo."
-            exit 1
-          elif [ "$UPSTREAM" = "$CURRENT" ]; then
+          if [ "$UPSTREAM" = "$CURRENT" ]; then
             echo "needed=false" >> $GITHUB_OUTPUT
             echo "${{ matrix.formula }}: already at $CURRENT, skipping."
           else
@@ -116,9 +112,8 @@ jobs:
           VERSION="${{ steps.upstream.outputs.version }}"
           FORMULA="${{ matrix.formula }}"
           TAG_PREFIX="${{ matrix.tag_prefix }}"
-          BASE="https://github.com/${{ matrix.upstream_repo }}/releases/download/${TAG_PREFIX}${VERSION}"
           STYLE="${{ matrix.url_style }}"
-          RESULT=""
+          TMPDIR=$(mktemp -d)
 
           for ARCH in ${{ matrix.archs }}; do
             if [ "$STYLE" = "rust" ]; then
@@ -129,23 +124,28 @@ jobs:
               FILE="otelcol-contrib_${VERSION}_${ARCH}.tar.gz"
             fi
 
-            URL="${BASE}/${FILE}"
-            SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+            gh release download "${TAG_PREFIX}${VERSION}" \
+              --repo "${{ matrix.upstream_repo }}" \
+              --pattern "$FILE" \
+              --dir "$TMPDIR"
+
+            SHA=$(sha256sum "$TMPDIR/$FILE" | awk '{print $1}')
             if ! echo "$SHA" | grep -qE '^[a-f0-9]{64}$'; then
-              echo "::error::Failed to fetch or hash $URL (got: '$SHA')"
+              echo "::error::Invalid SHA256 for $FILE (got: '$SHA')"
               exit 1
             fi
-            RESULT="${RESULT}${ARCH}=${SHA}\n"
+
             echo "sha_${ARCH//[-.]/_}=$SHA" >> $GITHUB_OUTPUT
+            rm "$TMPDIR/$FILE"
           done
 
-          printf "$RESULT"
+          rmdir "$TMPDIR"
 
       - name: Update formula
         if: steps.check.outputs.needed == 'true'
         run: |
           python3 - <<'PYEOF'
-          import re, os, subprocess
+          import re, os
 
           formula_file = os.environ["FORMULA_FILE"]
           version      = os.environ["NEW_VERSION"]
@@ -165,15 +165,13 @@ jobs:
           for arch in archs_raw:
               if style == "rust":
                   new_url = f"{base}/{formula}-{version}-{arch}.tar.gz"
-                  arch_pat = arch.replace("-", r"\-")
                   content = re.sub(
-                      rf'(url ")[^"]+{arch_pat}\.tar\.gz"',
+                      rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
                       f'url "{new_url}"',
                       content
                   )
               elif style == "goreleaser":
                   new_url = f"{base}/{formula}@v{version}_{arch}.tar.gz"
-                  arch_pat = arch.replace("_", r"\_")
                   content = re.sub(
                       rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
                       f'url "{new_url}"',
@@ -181,11 +179,7 @@ jobs:
                   )
               elif style == "otelcol":
                   new_url = f"{base}/otelcol-contrib_{version}_{arch}.tar.gz"
-                  content = re.sub(
-                      rf'(url ")[^"]+"',
-                      f'url "{new_url}"',
-                      content
-                  )
+                  content = re.sub(r'(url ")[^"]+"', f'url "{new_url}"', content)
 
               env_key = "sha_" + arch.replace("-", "_").replace(".", "_")
               sha = os.environ.get(env_key, "")
