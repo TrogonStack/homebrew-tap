@@ -56,14 +56,6 @@ jobs:
               Linux_arm64
               Linux_x86_64
 
-          - formula: otel-collector
-            formula_file: Formula/otel-collector.rb
-            upstream_repo: open-telemetry/opentelemetry-collector-releases
-            tag_prefix: "v"
-            url_style: otelcol
-            archs: >-
-              darwin_amd64
-
     steps:
       - uses: actions/checkout@v4
 
