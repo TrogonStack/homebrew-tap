@@ -74,7 +74,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ matrix.upstream_repo }}/releases?per_page=100" \
             | jq -r --arg prefix "${{ matrix.tag_prefix }}" \
-              '[.[] | select(.tag_name | startswith($prefix))] | first | .tag_name | ltrimstr($prefix)')
+              '[.[] | select(.tag_name | startswith($prefix) and (contains("/") | not))] | first | .tag_name | ltrimstr($prefix)')
           echo "version=$TAG" >> $GITHUB_OUTPUT
 
       - name: Get current formula version
