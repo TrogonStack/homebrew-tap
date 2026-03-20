@@ -1,9 +1,9 @@
 class OtelCollector < Formula
   desc "OpenTelemetry Collector Contrib - vendor-agnostic implementation"
   homepage "https://github.com/open-telemetry/opentelemetry-collector-contrib"
-  url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.147.0/otelcol-contrib_0.147.0_darwin_amd64.tar.gz"
-  sha256 "f0075b96fcc9d1c085ae76d7206cf2c52080a3237eee4ce36218cafb2c6cd9d5"
-  version "0.147.0"
+  url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.148.0/otelcol-contrib_0.148.0_darwin_amd64.tar.gz"
+  sha256 "ebd06dc7f098a5e4d7c705a6228d724c9ea3b040f8435fad77846bc886df0c1f"
+  version "0.148.0"
   license "Apache-2.0"
 
   def install
