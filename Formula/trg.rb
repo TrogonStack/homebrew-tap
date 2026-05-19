@@ -2,29 +2,29 @@ class Trg < Formula
   desc "CLI tool for scaffolding and managing TrogonStack projects"
   homepage "https://github.com/TrogonStack/rusty-monorepo"
   license "MIT"
-  version "0.2.0"
+  version "0.2.1"
 
   on_macos do
     on_arm64 do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.0/trg-0.2.0-aarch64-apple-darwin.tar.gz"
-      sha256 "c25e09673b41d5072ac82dc1720ca714c553501545780862d6fd05799d0f54b1"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.1/trg-0.2.1-aarch64-apple-darwin.tar.gz"
+      sha256 "1fc42fc3c39c7111e9fdf47b57942ec71ea98191a144fa5ab7495904d83367e7"
     end
 
     on_intel do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.0/trg-0.2.0-x86_64-apple-darwin.tar.gz"
-      sha256 "bbfc52c4e4955376d202b693c6cdd3cdd054bcfb69695304219c017aaaed149f"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.1/trg-0.2.1-x86_64-apple-darwin.tar.gz"
+      sha256 "75ab093aebf11f57b51bcc1f111079f625719c0e24a58914269ff9c13e2ed86a"
     end
   end
 
   on_linux do
     on_arm64 do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.0/trg-0.2.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "7e066ed27098ebf9df869b94a5e6aea190ca65531dd95e4d8d903aa9540c3326"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.1/trg-0.2.1-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "aa434119bc563b9eaeb93e4f550366ce70b5cde3186a80ea1824ca16afc7477b"
     end
 
     on_x86_64 do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.0/trg-0.2.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "b14c575d609aef875a786ad628f4547a0b22427a1255ae67e32668f0032ff273"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.2.1/trg-0.2.1-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "350cdd1bea3aed41a97be817861d0f0665450a2545f02069e28e9a48a283eef5"
     end
   end
 
