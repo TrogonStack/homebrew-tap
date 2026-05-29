@@ -230,6 +230,7 @@ jobs:
 
       - name: Open PR
         if: steps.check.outputs.needed == 'true' && !inputs.dry_run
+        id: cpr
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
           token: ${{ secrets.GH_PAT_RELEASE_PLEASE_ACTION }}
@@ -244,3 +245,23 @@ jobs:
           labels: |
             bot
             bump-formula-pr
+
+      - name: Close superseded bump PRs
+        if: steps.check.outputs.needed == 'true' && !inputs.dry_run && steps.cpr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_RELEASE_PLEASE_ACTION }}
+          FORMULA: ${{ matrix.formula }}
+          NEW_BRANCH: bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}
+          NEW_PR: ${{ steps.cpr.outputs.pull-request-number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr list --repo "$REPO" --state open \
+            --json number,headRefName \
+            --jq ".[] | select(.headRefName | startswith(\"bump-${FORMULA}-\")) | select(.headRefName != \"${NEW_BRANCH}\") | .number" \
+            | while read -r PR; do
+                [ -z "$PR" ] && continue
+                echo "Closing superseded PR #${PR}"
+                gh pr close "$PR" --repo "$REPO" \
+                  --comment "Superseded by #${NEW_PR}." \
+                  --delete-branch
+              done
