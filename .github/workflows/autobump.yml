@@ -67,7 +67,7 @@ jobs:
               darwin_amd64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get latest upstream version
         id: upstream
