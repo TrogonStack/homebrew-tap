@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.4.0...v0.5.0) (2026-05-29)
+
+
+### Features
+
+* Bump otel-collector to 0.153.0 ([#34](https://github.com/TrogonStack/homebrew-tap/issues/34)) ([31f9d58](https://github.com/TrogonStack/homebrew-tap/commit/31f9d582cd1901d8fee14e287bf45eada7ceb9f5))
+* Bump trg to 0.4.0 ([#37](https://github.com/TrogonStack/homebrew-tap/issues/37)) ([4aac522](https://github.com/TrogonStack/homebrew-tap/commit/4aac52246a3a2c3cc56c8a66a1cac1b015424484))
+
+
+### Bug Fixes
+
+* **ci:** Close superseded bump PRs after opening new one ([#36](https://github.com/TrogonStack/homebrew-tap/issues/36)) ([b4878d2](https://github.com/TrogonStack/homebrew-tap/commit/b4878d2078266837c1a1cf970ef22b5b325ad5cc))
+
 ## [0.4.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.3.0...v0.4.0) (2026-03-10)
 
 
