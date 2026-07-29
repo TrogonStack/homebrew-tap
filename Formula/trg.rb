@@ -2,7 +2,6 @@ class Trg < Formula
   desc "CLI tool for scaffolding and managing TrogonStack projects"
   homepage "https://github.com/TrogonStack/rusty-monorepo"
   license "MIT"
-  version "0.4.1"
 
   on_macos do
     on_arm do
