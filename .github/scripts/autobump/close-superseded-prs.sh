@@ -10,8 +10,7 @@ new_pr="$4"
 
 gh pr list --repo "$repo" --state open \
   --json number,headRefName \
-  --jq --arg formula "$formula" --arg branch "$new_branch" \
-  '.[] | select(.headRefName | startswith("bump-" + $formula + "-")) | select(.headRefName != $branch) | .number' \
+  --jq ".[] | select(.headRefName | startswith(\"bump-${formula}-\")) | select(.headRefName != \"${new_branch}\") | .number" \
   | while read -r pr; do
       [ -z "$pr" ] && continue
       echo "Closing superseded PR #${pr}"

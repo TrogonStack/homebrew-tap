@@ -9,8 +9,7 @@ tag=$(gh release list \
   --repo "$repo" \
   --limit 100 \
   --json tagName \
-  --jq --arg prefix "$tag_prefix" \
-  '[.[] | select(.tagName | startswith($prefix) and (contains("/") | not))] | first | .tagName | ltrimstr($prefix)')
+  --jq "[.[] | select(.tagName | startswith(\"$tag_prefix\") and (contains(\"/\") | not))] | first | .tagName | ltrimstr(\"$tag_prefix\")")
 
 if [ -z "$tag" ] || [ "$tag" = "null" ]; then
   echo "::error::Could not resolve upstream version for tag_prefix: $tag_prefix" >&2
