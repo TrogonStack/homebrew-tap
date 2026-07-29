@@ -17,6 +17,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    concurrency:
+      group: autobump-${{ matrix.formula }}
+      cancel-in-progress: false
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
@@ -67,7 +70,7 @@ jobs:
               darwin_amd64
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get latest upstream version
         id: upstream
@@ -88,7 +91,15 @@ jobs:
       - name: Get current formula version
         id: current
         run: |
-          VERSION=$(grep '^  version ' ${{ matrix.formula_file }} | sed 's/.*"\(.*\)"/\1/')
+          URL=$(grep -m1 'url "' ${{ matrix.formula_file }} | sed 's/.*url "\(.*\)"/\1/')
+          TAG=$(echo "$URL" | sed -E 's#.*/releases/download/([^/]+)/.*#\1#')
+          VERSION=$(echo "$TAG" | grep -oE '[0-9]+(\.[0-9]+)+$')
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not resolve current version for ${{ matrix.formula }} from ${{ matrix.formula_file }}"
+            exit 1
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if bump needed
