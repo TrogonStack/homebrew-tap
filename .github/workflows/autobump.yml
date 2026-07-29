@@ -75,156 +75,50 @@ jobs:
       - name: Get latest upstream version
         id: upstream
         run: |
-          TAG=$(gh release list \
-            --repo "${{ matrix.upstream_repo }}" \
-            --limit 100 \
-            --json tagName \
-            --jq '[.[] | select(.tagName | startswith("${{ matrix.tag_prefix }}") and (contains("/") | not))] | first | .tagName | ltrimstr("${{ matrix.tag_prefix }}")')
-
-          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
-            echo "::error::Could not resolve upstream version for ${{ matrix.formula }} (tag_prefix: ${{ matrix.tag_prefix }})"
-            exit 1
-          fi
-
-          echo "version=$TAG" >> $GITHUB_OUTPUT
+          VERSION=$(.github/scripts/autobump/get-upstream-version.sh \
+            "${{ matrix.upstream_repo }}" "${{ matrix.tag_prefix }}")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Get current formula version
         id: current
         run: |
-          URL=$(grep -m1 'url "' ${{ matrix.formula_file }} | sed 's/.*url "\(.*\)"/\1/')
-          TAG=$(echo "$URL" | sed -E 's#.*/releases/download/([^/]+)/.*#\1#')
-          VERSION=$(echo "$TAG" | grep -oE '[0-9]+(\.[0-9]+)+$')
-
-          if [ -z "$VERSION" ]; then
-            echo "::error::Could not resolve current version for ${{ matrix.formula }} from ${{ matrix.formula_file }}"
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(.github/scripts/autobump/get-current-version.sh \
+            "${{ matrix.formula_file }}" "${{ matrix.formula }}")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if bump needed
         id: check
         run: |
-          UPSTREAM="${{ steps.upstream.outputs.version }}"
-          CURRENT="${{ steps.current.outputs.version }}"
-          if [ "$UPSTREAM" = "$CURRENT" ]; then
-            echo "needed=false" >> $GITHUB_OUTPUT
-            echo "${{ matrix.formula }}: already at $CURRENT, skipping."
-          else
-            echo "needed=true" >> $GITHUB_OUTPUT
-            echo "${{ matrix.formula }}: bumping $CURRENT → $UPSTREAM"
-          fi
+          NEEDED=$(.github/scripts/autobump/check-bump-needed.sh \
+            "${{ matrix.formula }}" \
+            "${{ steps.current.outputs.version }}" \
+            "${{ steps.upstream.outputs.version }}")
+          echo "needed=$NEEDED" >> "$GITHUB_OUTPUT"
 
       - name: Fetch SHA256 checksums
         if: steps.check.outputs.needed == 'true'
-        id: checksums
         run: |
-          VERSION="${{ steps.upstream.outputs.version }}"
-          FORMULA="${{ matrix.formula }}"
-          TAG_PREFIX="${{ matrix.tag_prefix }}"
-          STYLE="${{ matrix.url_style }}"
-          TMPDIR=$(mktemp -d)
-
-          for ARCH in ${{ matrix.archs }}; do
-            if [ "$STYLE" = "rust" ]; then
-              FILE="${FORMULA}-${VERSION}-${ARCH}.tar.gz"
-            elif [ "$STYLE" = "goreleaser" ]; then
-              FILE="${FORMULA}@v${VERSION}_${ARCH}.tar.gz"
-            elif [ "$STYLE" = "otelcol" ]; then
-              FILE="otelcol-contrib_${VERSION}_${ARCH}.tar.gz"
-            fi
-
-            gh release download "${TAG_PREFIX}${VERSION}" \
-              --repo "${{ matrix.upstream_repo }}" \
-              --pattern "$FILE" \
-              --dir "$TMPDIR"
-
-            SHA=$(sha256sum "$TMPDIR/$FILE" | awk '{print $1}')
-            if ! echo "$SHA" | grep -qE '^[a-f0-9]{64}$'; then
-              echo "::error::Invalid SHA256 for $FILE (got: '$SHA')"
-              exit 1
-            fi
-
-            echo "sha_${ARCH//[-.]/_}=$SHA" >> $GITHUB_OUTPUT
-            rm "$TMPDIR/$FILE"
-          done
-
-          rmdir "$TMPDIR"
+          .github/scripts/autobump/fetch-checksums.sh \
+            "${{ matrix.formula }}" \
+            "${{ steps.upstream.outputs.version }}" \
+            "${{ matrix.tag_prefix }}" \
+            "${{ matrix.url_style }}" \
+            "${{ matrix.upstream_repo }}" \
+            "$RUNNER_TEMP/checksums.env" \
+            ${{ matrix.archs }}
 
       - name: Update formula
         if: steps.check.outputs.needed == 'true'
         run: |
-          python3 - <<'PYEOF'
-          import re, os
-
-          formula_file = os.environ["FORMULA_FILE"]
-          version      = os.environ["NEW_VERSION"]
-          formula      = os.environ["FORMULA_NAME"]
-          tag_prefix   = os.environ["TAG_PREFIX"]
-          style        = os.environ["URL_STYLE"]
-          repo         = os.environ["UPSTREAM_REPO"]
-          archs_raw    = os.environ["ARCHS"].split()
-
-          base = f"https://github.com/{repo}/releases/download/{tag_prefix}{version}"
-
-          with open(formula_file) as f:
-              content = f.read()
-
-          content = re.sub(r'version "[^"]+"', f'version "{version}"', content)
-
-          for arch in archs_raw:
-              if style == "rust":
-                  new_url = f"{base}/{formula}-{version}-{arch}.tar.gz"
-                  content = re.sub(
-                      rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
-                      f'url "{new_url}"',
-                      content
-                  )
-              elif style == "goreleaser":
-                  new_url = f"{base}/{formula}@v{version}_{arch}.tar.gz"
-                  content = re.sub(
-                      rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
-                      f'url "{new_url}"',
-                      content
-                  )
-              elif style == "otelcol":
-                  new_url = f"{base}/otelcol-contrib_{version}_{arch}.tar.gz"
-                  content = re.sub(r'(url ")[^"]+"', f'url "{new_url}"', content)
-
-              env_key = "sha_" + arch.replace("-", "_").replace(".", "_")
-              sha = os.environ.get(env_key, "")
-              if sha:
-                  if style in ("rust", "goreleaser"):
-                      content = re.sub(
-                          rf'({re.escape(arch)}\.tar\.gz"\n\s+sha256 ")[a-f0-9]+"',
-                          rf'\g<1>{sha}"',
-                          content
-                      )
-                  elif style == "otelcol":
-                      content = re.sub(r'sha256 "[a-f0-9]+"', f'sha256 "{sha}"', content)
-
-          with open(formula_file, "w") as f:
-              f.write(content)
-
-          print(content)
-          PYEOF
-        env:
-          FORMULA_FILE: ${{ matrix.formula_file }}
-          NEW_VERSION: ${{ steps.upstream.outputs.version }}
-          FORMULA_NAME: ${{ matrix.formula }}
-          TAG_PREFIX: ${{ matrix.tag_prefix }}
-          URL_STYLE: ${{ matrix.url_style }}
-          UPSTREAM_REPO: ${{ matrix.upstream_repo }}
-          ARCHS: ${{ matrix.archs }}
-          sha_aarch64_apple_darwin: ${{ steps.checksums.outputs.sha_aarch64_apple_darwin }}
-          sha_x86_64_apple_darwin: ${{ steps.checksums.outputs.sha_x86_64_apple_darwin }}
-          sha_aarch64_unknown_linux_gnu: ${{ steps.checksums.outputs.sha_aarch64_unknown_linux_gnu }}
-          sha_x86_64_unknown_linux_gnu: ${{ steps.checksums.outputs.sha_x86_64_unknown_linux_gnu }}
-          sha_Darwin_arm64: ${{ steps.checksums.outputs.sha_Darwin_arm64 }}
-          sha_Darwin_x86_64: ${{ steps.checksums.outputs.sha_Darwin_x86_64 }}
-          sha_Linux_arm64: ${{ steps.checksums.outputs.sha_Linux_arm64 }}
-          sha_Linux_x86_64: ${{ steps.checksums.outputs.sha_Linux_x86_64 }}
-          sha_darwin_amd64: ${{ steps.checksums.outputs.sha_darwin_amd64 }}
+          python3 .github/scripts/autobump/update-formula.py \
+            "${{ matrix.formula_file }}" \
+            "${{ steps.upstream.outputs.version }}" \
+            "${{ matrix.formula }}" \
+            "${{ matrix.tag_prefix }}" \
+            "${{ matrix.url_style }}" \
+            "${{ matrix.upstream_repo }}" \
+            "$RUNNER_TEMP/checksums.env" \
+            ${{ matrix.archs }}
 
       - name: Dry run summary
         if: steps.check.outputs.needed == 'true' && inputs.dry_run
@@ -261,18 +155,9 @@ jobs:
         if: steps.check.outputs.needed == 'true' && !inputs.dry_run && steps.cpr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ secrets.GH_PAT_RELEASE_PLEASE_ACTION }}
-          FORMULA: ${{ matrix.formula }}
-          NEW_BRANCH: bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}
-          NEW_PR: ${{ steps.cpr.outputs.pull-request-number }}
-          REPO: ${{ github.repository }}
         run: |
-          gh pr list --repo "$REPO" --state open \
-            --json number,headRefName \
-            --jq ".[] | select(.headRefName | startswith(\"bump-${FORMULA}-\")) | select(.headRefName != \"${NEW_BRANCH}\") | .number" \
-            | while read -r PR; do
-                [ -z "$PR" ] && continue
-                echo "Closing superseded PR #${PR}"
-                gh pr close "$PR" --repo "$REPO" \
-                  --comment "Superseded by #${NEW_PR}." \
-                  --delete-branch
-              done
+          .github/scripts/autobump/close-superseded-prs.sh \
+            "${{ github.repository }}" \
+            "${{ matrix.formula }}" \
+            "bump-${{ matrix.formula }}-${{ steps.upstream.outputs.version }}" \
+            "${{ steps.cpr.outputs.pull-request-number }}"
