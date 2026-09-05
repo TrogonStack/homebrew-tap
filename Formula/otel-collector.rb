@@ -3,7 +3,6 @@ class OtelCollector < Formula
   homepage "https://github.com/open-telemetry/opentelemetry-collector-contrib"
   url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.160.0/otelcol-contrib_0.160.0_darwin_amd64.tar.gz"
   sha256 "1576c3049c1fd4e8172d9817313a0129f4d2a1004aa653987d765df048e1e959"
-  version "0.160.0"
   license "Apache-2.0"
 
   def install
