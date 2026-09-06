@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.5.0...v0.6.0) (2026-09-06)
+
+
+### Features
+
+* Bump otel-collector to 0.155.0 ([#41](https://github.com/TrogonStack/homebrew-tap/issues/41)) ([b85490d](https://github.com/TrogonStack/homebrew-tap/commit/b85490d03082fe1736b17f6b13c0d88839652dcc))
+* Bump otel-collector to 0.157.0 ([#43](https://github.com/TrogonStack/homebrew-tap/issues/43)) ([6b79634](https://github.com/TrogonStack/homebrew-tap/commit/6b796344a2765a25b26fa6f6d250f1a2de9b28a1))
+* Bump otel-collector to 0.160.0 ([#55](https://github.com/TrogonStack/homebrew-tap/issues/55)) ([76ed6f5](https://github.com/TrogonStack/homebrew-tap/commit/76ed6f551b88a4300fb04292213db858572345b1))
+* Bump protoc-gen-elixir-grpc to 0.4.3 ([#42](https://github.com/TrogonStack/homebrew-tap/issues/42)) ([06af084](https://github.com/TrogonStack/homebrew-tap/commit/06af0846970f01c626ba8a8877c1863be02ec9ff))
+* Bump trg to 0.4.1 ([#38](https://github.com/TrogonStack/homebrew-tap/issues/38)) ([da13fcd](https://github.com/TrogonStack/homebrew-tap/commit/da13fcd00d0e783c66c769ee62c15ff2d469173d))
+* Bump trg to 0.4.2 ([#54](https://github.com/TrogonStack/homebrew-tap/issues/54)) ([8be89b0](https://github.com/TrogonStack/homebrew-tap/commit/8be89b0b4eca92049f3eb71b1190234dba58a8d8))
+* Bump trg to 0.5.0 ([#56](https://github.com/TrogonStack/homebrew-tap/issues/56)) ([acd0f53](https://github.com/TrogonStack/homebrew-tap/commit/acd0f53b228cd34ddad2884e342555317edd9d72))
+* Bump trg to 0.6.0 ([#57](https://github.com/TrogonStack/homebrew-tap/issues/57)) ([4370181](https://github.com/TrogonStack/homebrew-tap/commit/43701819e032cca9c6cfccb2ae4e9438a41eadb4))
+
 ## [0.5.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.4.0...v0.5.0) (2026-05-29)
 
 
