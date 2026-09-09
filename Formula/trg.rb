@@ -5,25 +5,25 @@ class Trg < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.6.0/trg-0.6.0-aarch64-apple-darwin.tar.gz"
-      sha256 "f3edc6cd4df98bc857eb4103247c37207f21f0fed3b206f8dab9578290bbbcfb"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.8.1/trg-0.8.1-aarch64-apple-darwin.tar.gz"
+      sha256 "3475ddfbd9d5b9c8bb7e868f7ac384b50834f1d4967544389225412bcb722dfd"
     end
 
     on_intel do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.6.0/trg-0.6.0-x86_64-apple-darwin.tar.gz"
-      sha256 "2b5616be389fa0efba4cba23c527bf7fb3cb0e258358aedde08bdd93bcc169fb"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.8.1/trg-0.8.1-x86_64-apple-darwin.tar.gz"
+      sha256 "870a2715cbacb1d310d24e69e45e2a5a0e7e623d8546568302bf57f188607dce"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.6.0/trg-0.6.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "6210f445629b1d1a82e19376e1431de4deca622b35b9142c65dc2bd05452a808"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.8.1/trg-0.8.1-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "5b4e1cdf4e4a50c02c76b2d6181db7486c7c711617dc70f5eab58cb701d097ec"
     end
 
     on_intel do
-      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.6.0/trg-0.6.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "60fa265b0f9f20a14057c3b82613b3549252a6d263451d20db584c4e3bd5097a"
+      url "https://github.com/TrogonStack/rusty-monorepo/releases/download/trg@v0.8.1/trg-0.8.1-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "33da20de9b01bd3a16545c8e9760aceb1b9f2556d8d9a980a8fb4c05089b8f65"
     end
   end
 
