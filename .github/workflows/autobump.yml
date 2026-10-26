@@ -67,7 +67,10 @@ jobs:
             tag_prefix: "v"
             url_style: otelcol
             archs: >-
+              darwin_arm64
               darwin_amd64
+              linux_arm64
+              linux_amd64
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
