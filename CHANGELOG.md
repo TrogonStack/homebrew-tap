@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.6.0...v0.7.0) (2026-10-26)
+
+
+### Features
+
+* Bump trg to 0.11.0 ([#69](https://github.com/TrogonStack/homebrew-tap/issues/69)) ([38b4a43](https://github.com/TrogonStack/homebrew-tap/commit/38b4a43364f95ac10bb166f5c067038efb0b84ca))
+
+
+### Bug Fixes
+
+* **otel-collector:** Stop running the collector under Rosetta on Apple Silicon ([#76](https://github.com/TrogonStack/homebrew-tap/issues/76)) ([f783fa9](https://github.com/TrogonStack/homebrew-tap/commit/f783fa92b30336de6537b7a54763a86e8be03149))
+
 ## [0.6.0](https://github.com/TrogonStack/homebrew-tap/compare/v0.5.0...v0.6.0) (2026-09-06)
 
 
