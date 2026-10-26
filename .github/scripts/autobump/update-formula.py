@@ -44,18 +44,19 @@ def main():
             )
         elif style == "otelcol":
             new_url = f"{base}/otelcol-contrib_{version}_{arch}.tar.gz"
-            content = re.sub(r'(url ")[^"]+"', f'url "{new_url}"', content)
+            content = re.sub(
+                rf'(url ")[^"]+{re.escape(arch)}\.tar\.gz"',
+                f'url "{new_url}"',
+                content,
+            )
 
         sha = checksums.get(arch, "")
         if sha:
-            if style in ("rust", "goreleaser"):
-                content = re.sub(
-                    rf'({re.escape(arch)}\.tar\.gz"\n\s+sha256 ")[a-f0-9]+"',
-                    rf'\g<1>{sha}"',
-                    content,
-                )
-            elif style == "otelcol":
-                content = re.sub(r'sha256 "[a-f0-9]+"', f'sha256 "{sha}"', content)
+            content = re.sub(
+                rf'({re.escape(arch)}\.tar\.gz"\n\s+sha256 ")[a-f0-9]+"',
+                rf'\g<1>{sha}"',
+                content,
+            )
 
     with open(formula_file, "w") as f:
         f.write(content)
