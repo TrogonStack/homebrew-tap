@@ -15,6 +15,18 @@ class OtelCollector < Formula
     end
   end
 
+  on_linux do
+    on_arm do
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_linux_arm64.tar.gz"
+      sha256 "d239e219cf81993213fda2fd6de7dc1f9229d32698c45d2dd7bec31b69c1c004"
+    end
+
+    on_intel do
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_linux_amd64.tar.gz"
+      sha256 "cc19dd6a1b85ca694ef16655688e597f693d0e24d2baecdd50e2db597819eeff"
+    end
+  end
+
   def install
     bin.install "otelcol-contrib"
   end
