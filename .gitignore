@@ -54,3 +54,6 @@ build-iPhoneSimulator/
 
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 # .rubocop-https?--*
+
+# Written by google-github-actions/auth; create-pull-request must never commit it.
+gha-creds-*.json
