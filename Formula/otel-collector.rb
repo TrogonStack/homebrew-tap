@@ -5,25 +5,25 @@ class OtelCollector < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_darwin_arm64.tar.gz"
-      sha256 "ae0dff18926bc3f1e3ef4d1633c4ad4326781f302da2ba5be2ce215ba86e4b9e"
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.165.0/otelcol-contrib_0.165.0_darwin_arm64.tar.gz"
+      sha256 "f9a0ed310e9beeb0fabca9d9c24bd0d3467f6339e3207710dbd66a6adf1298f6"
     end
 
     on_intel do
-      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_darwin_amd64.tar.gz"
-      sha256 "296bcc386250563fa547a287aac67b47bb124656d11d9bf40dbc60a883455e6c"
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.165.0/otelcol-contrib_0.165.0_darwin_amd64.tar.gz"
+      sha256 "7d14e5c14bcb930d55f2bd5d3fbb3734be5fd2889698488e65e488efda5473c9"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_linux_arm64.tar.gz"
-      sha256 "d239e219cf81993213fda2fd6de7dc1f9229d32698c45d2dd7bec31b69c1c004"
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.165.0/otelcol-contrib_0.165.0_linux_arm64.tar.gz"
+      sha256 "376420729c862230807bc89811d07d10031eaeca3f6481fe371a2bdcefd2c8fa"
     end
 
     on_intel do
-      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.2/otelcol-contrib_0.163.2_linux_amd64.tar.gz"
-      sha256 "cc19dd6a1b85ca694ef16655688e597f693d0e24d2baecdd50e2db597819eeff"
+      url "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.165.0/otelcol-contrib_0.165.0_linux_amd64.tar.gz"
+      sha256 "bd6e73d94bf3359ad6fac25529a8ee308adb9b0b8a0e8af034ed3891fbe5aa33"
     end
   end
 
